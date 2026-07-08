@@ -1,0 +1,134 @@
+.playlist-page { padding-bottom: 2rem; }
+
+.playlist-hero {
+  display: flex;
+  align-items: flex-end;
+  gap: 2rem;
+  margin-bottom: 2rem;
+  padding: 2rem;
+  background: linear-gradient(135deg, #4c1d95 0%, #7c3aed 100%);
+  border-radius: var(--radius-lg);
+}
+
+.playlist-hero-icon {
+  width: 120px;
+  height: 120px;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(135deg, #6d28d9, #8b5cf6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  flex-shrink: 0;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  position: relative;
+  z-index: 20;
+}
+
+.playlist-hero-info {
+  position: relative;
+  z-index: 20;
+}
+
+.playlist-label {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(255,255,255,0.7);
+  margin-bottom: 0.3rem;
+}
+
+.playlist-name-title {
+  font-size: 2.5rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+.playlist-count {
+  font-size: 0.9rem;
+  color: rgba(255,255,255,0.7);
+  margin-top: 0.25rem;
+}
+
+.playlist-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 2rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.action-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.65rem 1.4rem;
+  border-radius: 30px;
+  border: none;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+.action-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.action-btn.primary { background: var(--primary-color); color: #fff; }
+.action-btn.primary:hover:not(:disabled) { background: var(--primary-hover); }
+.action-btn.secondary {
+  background: rgba(255,255,255,0.08);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+}
+.action-btn.secondary:hover:not(:disabled) { background: rgba(255,255,255,0.14); }
+.action-btn.danger {
+  background: rgba(239,68,68,0.1);
+  color: var(--danger-color);
+  border: 1px solid rgba(239,68,68,0.2);
+}
+.action-btn.danger:hover { background: rgba(239,68,68,0.2); }
+
+.banner-container {
+  position: relative;
+  overflow: hidden;
+}
+
+.logo-container {
+  position: relative;
+  overflow: hidden;
+}
+
+.hover-overlay {
+  position: absolute;
+  background: rgba(0, 0, 0, 0.7);
+  padding: 0.5rem 1rem;
+  border-radius: 30px;
+  display: inline-flex;
+  gap: 0.5rem;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  cursor: pointer;
+  color: white;
+  z-index: 10;
+}
+
+.banner-container:hover .banner-edit-overlay {
+  opacity: 1;
+}
+
+.banner-edit-overlay {
+  top: 1rem;
+  right: 1rem;
+}
+
+.logo-container:hover .logo-edit-overlay {
+  opacity: 1;
+}
+
+.logo-edit-overlay {
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  padding: 0.6rem;
+}

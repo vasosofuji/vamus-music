@@ -1,0 +1,64 @@
+{
+  "name": "music",
+  "version": "0.1.0",
+  "private": true,
+  "main": "main.js",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "app": "concurrently \"npm run dev\" \"wait-on http://localhost:3000 && electron .\"",
+    "build:exe": "npm run build && xcopy /E /I /Y .next\\static .next\\standalone\\.next\\static && xcopy /E /I /Y public .next\\standalone\\public && electron-builder"
+  },
+  "build": {
+    "appId": "com.aura.music",
+    "productName": "Vamus",
+    "asar": false,
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": "nsis"
+    },
+    "files": [
+      "main.js",
+      ".next/standalone/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "node_modules/ytmusic-api",
+        "to": "node_modules/ytmusic-api"
+      },
+      {
+        "from": "node_modules/youtube-dl-exec",
+        "to": "node_modules/youtube-dl-exec"
+      }
+    ]
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.4.1",
+    "@capacitor/core": "^8.4.1",
+    "@distube/ytdl-core": "^4.16.12",
+    "@google/genai": "^2.10.0",
+    "localforage": "^1.10.0",
+    "lucide-react": "^1.23.0",
+    "next": "16.2.10",
+    "play-dl": "^1.9.7",
+    "react": "19.2.4",
+    "react-dom": "19.2.4"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^8.4.1",
+    "@tailwindcss/postcss": "^4",
+    "concurrently": "^10.0.3",
+    "electron": "^43.0.0",
+    "electron-builder": "^26.15.3",
+    "eslint": "^9",
+    "eslint-config-next": "16.2.10",
+    "tailwindcss": "^4",
+    "wait-on": "^9.0.10",
+    "youtube-dl-exec": "^3.1.8",
+    "ytmusic-api": "^5.3.1"
+  }
+}

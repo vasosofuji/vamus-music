@@ -1,0 +1,137 @@
+.track-list {
+  width: 100%;
+}
+
+.track-list-header {
+  display: flex;
+  align-items: center;
+  padding: 0.4rem 1rem;
+  border-bottom: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 0.4rem;
+}
+
+.track-row {
+  display: flex;
+  align-items: center;
+  padding: 0.45rem 1rem;
+  border-radius: var(--radius-md);
+  transition: background 0.15s;
+  cursor: pointer;
+  opacity: 0;
+}
+
+.track-row:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.track-row:hover .index-num { display: none; }
+.track-row:hover .row-play-btn { display: flex; }
+.track-row:hover .like-btn { opacity: 1; }
+.track-row:hover .more-btn { opacity: 1; }
+
+.col-index {
+  width: 40px;
+  display: flex;
+  justify-content: flex-end;
+  padding-right: 1rem;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  flex-shrink: 0;
+}
+
+.row-play-btn {
+  display: none;
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  cursor: pointer;
+  padding: 0;
+  align-items: center;
+}
+
+.col-title {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  overflow: hidden;
+  min-width: 0;
+}
+
+.row-thumb {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-sm);
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.row-name {
+  font-size: 0.92rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.col-album {
+  width: 28%;
+  color: var(--text-secondary);
+  font-size: 0.88rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding-right: 1rem;
+}
+
+.artist-link {
+  color: var(--text-secondary);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+.artist-link:hover {
+  color: var(--text-primary);
+  text-decoration: underline;
+}
+
+.col-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  width: 80px;
+  justify-content: flex-end;
+  padding-right: 0.5rem;
+}
+
+.like-btn {
+  opacity: 0;
+  transition: opacity 0.2s, color 0.2s;
+}
+.like-btn.active { opacity: 1; color: var(--success-color) !important; }
+
+.more-btn { opacity: 0; transition: opacity 0.2s; }
+
+.col-time {
+  width: 50px;
+  display: flex;
+  justify-content: flex-end;
+  color: var(--text-secondary);
+  font-size: 0.88rem;
+  flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+  .col-album {
+    display: none;
+  }
+  .col-title {
+    flex: 1;
+    min-width: 0;
+  }
+}

@@ -49,10 +49,9 @@ export async function GET(request) {
     const args = [
       url,
       '--output', '-',
-      '--format', 'bestaudio[ext=m4a]/bestaudio',
+      '--format', 'bestaudio',
       '--quiet',
-      '--no-warnings',
-      '--extractor-args', 'youtube:player_client=ios,android'
+      '--no-warnings'
     ];
     
     if (fs.existsSync(cookiesPath)) {

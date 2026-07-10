@@ -43,14 +43,23 @@ export async function GET(request) {
     
     // Spawn yt-dlp directly using Node's spawn for maximum control
     // Use m4a format because audio/mp4 has the best browser compatibility
-    const proc = spawn(ytDlpPath, [
+    const fs = require('fs');
+    const cookiesPath = path.join(process.cwd(), 'cookies.txt');
+    
+    const args = [
       url,
       '--output', '-',
       '--format', 'bestaudio[ext=m4a]/bestaudio',
       '--quiet',
       '--no-warnings',
       '--extractor-args', 'youtube:player_client=ios,android'
-    ]);
+    ];
+    
+    if (fs.existsSync(cookiesPath)) {
+      args.push('--cookies', cookiesPath);
+    }
+    
+    const proc = spawn(ytDlpPath, args);
 
     if (!proc || !proc.stdout) {
       throw new Error('Failed to spawn yt-dlp process');

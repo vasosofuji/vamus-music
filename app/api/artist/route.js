@@ -51,14 +51,14 @@ export async function GET(request) {
       name: artist.name,
       thumbnails: artist.thumbnails,
       topAlbums: (artist.topAlbums || []).slice(0, 10).map(a => ({
-        id: a.albumId,
+        id: a.albumId || a.browseId || a.id || Math.random().toString(),
         name: a.title || a.name,
         thumbnail: a.thumbnails?.[a.thumbnails.length - 1]?.url || '',
         year: a.year,
         type: 'Album'
       })),
       singles: (artist.topSingles || artist.singles || []).slice(0, 10).map(a => ({
-        id: a.albumId,
+        id: a.albumId || a.browseId || a.id || Math.random().toString(),
         name: a.title || a.name,
         thumbnail: a.thumbnails?.[a.thumbnails.length - 1]?.url || '',
         year: a.year,

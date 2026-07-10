@@ -49,6 +49,7 @@ export async function GET(request) {
       '--format', 'bestaudio[ext=m4a]/bestaudio',
       '--quiet',
       '--no-warnings',
+      '--extractor-args', 'youtube:player_client=ios,android'
     ]);
 
     if (!proc || !proc.stdout) {

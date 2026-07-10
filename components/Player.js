@@ -149,9 +149,11 @@ export default function Player() {
               }
             },
             onError: (event) => {
-              console.error('YT Player error code:', event.data);
-              setIsPlaying(false);
+              // Error codes: 2=invalid ID, 5=HTML5 error, 100=not found, 101/150=embedding disabled
+              console.warn('YT Player error code:', event.data, '- skipping to next track');
               stopProgressPolling();
+              // Auto-skip to next track after a brief delay
+              setTimeout(() => playNextRef.current(), 500);
             },
           },
         });

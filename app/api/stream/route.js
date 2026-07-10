@@ -1,9 +1,11 @@
 import yt from 'youtube-dl-exec';
 import { NextResponse } from 'next/server';
 import { spawn } from 'child_process';
+import path from 'path';
 
-// Get the correct binary path dynamically based on the OS (Linux on Render)
-const ytDlpPath = yt.constants.YOUTUBE_DL_PATH;
+// Get the correct binary path dynamically
+const isWin = process.platform === 'win32';
+const ytDlpPath = path.join(process.cwd(), 'node_modules', 'youtube-dl-exec', 'bin', isWin ? 'yt-dlp.exe' : 'yt-dlp');
 
 function nodeToWebStream(nodeStream, processRef) {
   return new ReadableStream({

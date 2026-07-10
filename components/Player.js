@@ -26,29 +26,20 @@ export default function Player() {
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
   const audioRef = useRef(null);
-  const latestPlayNext = useRef(playNext);
-
-  useEffect(() => {
-    latestPlayNext.current = playNext;
-  }, [playNext]);
 
   // When track changes, load + play it
   useEffect(() => {
     if (!currentTrack || !audioRef.current) return;
-    let timeoutId;
     
     audioRef.current.src = `/api/stream?id=${currentTrack.id}`;
     audioRef.current.load();
     audioRef.current.play().catch(e => {
       console.error('Play error:', e);
       if (e.name === 'AbortError') return;
-      // Skip to next song if this one fails to play (e.g., stream error)
-      timeoutId = setTimeout(() => latestPlayNext.current(), 1500);
+      setIsPlaying(false);
     });
     setIsPlaying(true);
     setProgress(0);
-
-    return () => clearTimeout(timeoutId);
   }, [currentTrack?.id]);
 
   // Sync play/pause state
@@ -211,10 +202,17 @@ export default function Player() {
           ref={audioRef}
           loop={repeat === 'one'}
           onTimeUpdate={handleTimeUpdate}
-          onEnded={playNext}
+          onEnded={() => {
+            if (audioRef.current && (audioRef.current.duration < 1 || Number.isNaN(audioRef.current.duration))) {
+              console.error("Audio ended too quickly, possibly stream error. Stopping playback.");
+              setIsPlaying(false);
+            } else {
+              playNext();
+            }
+          }}
           onError={() => {
             console.error("Audio playback error");
-            setTimeout(() => playNext(), 1500);
+            setIsPlaying(false);
           }}
           onLoadedMetadata={handleTimeUpdate}
         />

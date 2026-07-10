@@ -1,35 +1,61 @@
 import { NextResponse } from 'next/server';
 
-// Piped instances to try as fallbacks (public YouTube proxies)
+// Multiple API sources to find audio stream URLs
 const PIPED_INSTANCES = [
+  'https://api.piped.private.coffee',
   'https://pipedapi.kavin.rocks',
-  'https://pipedapi.adminforge.de',
-  'https://pipedapi.in.projectsegfau.lt',
 ];
 
-async function getAudioStreamUrl(videoId) {
+const INVIDIOUS_INSTANCES = [
+  'https://inv.nadeko.net',
+  'https://invidious.nerdvpn.de',
+  'https://invidious.jing.rocks',
+  'https://yewtu.be',
+];
+
+// Try Piped API to get audio stream URL
+async function tryPiped(videoId) {
   for (const instance of PIPED_INSTANCES) {
     try {
       const res = await fetch(`${instance}/streams/${videoId}`, {
         signal: AbortSignal.timeout(8000),
       });
       if (!res.ok) continue;
-
       const data = await res.json();
-      // Get the best audio stream available
+      
       const audioStreams = (data.audioStreams || [])
         .filter(s => s.mimeType && s.mimeType.startsWith('audio/'))
         .sort((a, b) => (b.bitrate || 0) - (a.bitrate || 0));
 
       if (audioStreams.length > 0) {
-        return {
-          url: audioStreams[0].url,
-          mimeType: audioStreams[0].mimeType,
-        };
+        return { url: audioStreams[0].url, mimeType: audioStreams[0].mimeType };
       }
     } catch (e) {
-      console.error(`Piped instance ${instance} failed:`, e.message);
-      continue;
+      console.error(`Piped ${instance} failed:`, e.message);
+    }
+  }
+  return null;
+}
+
+// Try Invidious API to get audio stream URL
+async function tryInvidious(videoId) {
+  for (const instance of INVIDIOUS_INSTANCES) {
+    try {
+      const res = await fetch(`${instance}/api/v1/videos/${videoId}`, {
+        signal: AbortSignal.timeout(8000),
+      });
+      if (!res.ok) continue;
+      const data = await res.json();
+
+      const audioFormats = (data.adaptiveFormats || [])
+        .filter(f => f.type && f.type.startsWith('audio/'))
+        .sort((a, b) => (b.bitrate || 0) - (a.bitrate || 0));
+
+      if (audioFormats.length > 0) {
+        return { url: audioFormats[0].url, mimeType: audioFormats[0].type.split(';')[0] };
+      }
+    } catch (e) {
+      console.error(`Invidious ${instance} failed:`, e.message);
     }
   }
   return null;
@@ -44,33 +70,26 @@ export async function GET(request) {
   }
 
   try {
-    const streamInfo = await getAudioStreamUrl(id);
+    // Try all sources to find an audio stream URL
+    let streamInfo = await tryPiped(id);
+    if (!streamInfo) {
+      streamInfo = await tryInvidious(id);
+    }
 
     if (!streamInfo) {
       return NextResponse.json(
-        { error: 'Could not find audio stream. All proxy instances failed.' },
+        { error: 'Could not find audio stream from any source.' },
         { status: 502 }
       );
     }
 
-    // Proxy the audio stream through our server to avoid CORS issues
-    const audioRes = await fetch(streamInfo.url, {
-      signal: AbortSignal.timeout(15000),
-    });
-
-    if (!audioRes.ok || !audioRes.body) {
-      return NextResponse.json(
-        { error: 'Failed to fetch audio stream from proxy' },
-        { status: 502 }
-      );
-    }
-
-    return new Response(audioRes.body, {
+    // Redirect the browser to fetch audio directly from the CDN
+    // The browser uses the user's residential IP (not blocked by YouTube)
+    return new Response(null, {
+      status: 302,
       headers: {
-        'Content-Type': streamInfo.mimeType || 'audio/webm',
-        'Transfer-Encoding': 'chunked',
+        'Location': streamInfo.url,
         'Cache-Control': 'no-cache, no-store, must-revalidate',
-        'Accept-Ranges': 'none',
       },
     });
   } catch (error) {

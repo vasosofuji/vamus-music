@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Play, Pause, SkipBack, SkipForward, Volume2, VolumeX,
   Shuffle, Repeat, Repeat1, Heart, MoreHorizontal, Plus, Check, Mic, ChevronDown
@@ -9,6 +9,31 @@ import { useMusic } from '@/app/context/MusicContext';
 import LyricsModal from './LyricsModal';
 import Link from 'next/link';
 import './Player.css';
+
+// YouTube IFrame API loader (singleton)
+let ytApiReady = false;
+let ytApiPromise = null;
+
+function loadYTApi() {
+  if (ytApiReady && window.YT && window.YT.Player) return Promise.resolve();
+  if (ytApiPromise) return ytApiPromise;
+  
+  ytApiPromise = new Promise((resolve) => {
+    if (window.YT && window.YT.Player) {
+      ytApiReady = true;
+      resolve();
+      return;
+    }
+    window.onYouTubeIframeAPIReady = () => {
+      ytApiReady = true;
+      resolve();
+    };
+    const tag = document.createElement('script');
+    tag.src = 'https://www.youtube.com/iframe_api';
+    document.head.appendChild(tag);
+  });
+  return ytApiPromise;
+}
 
 export default function Player() {
   const {
@@ -25,31 +50,131 @@ export default function Player() {
   const [volume, setVolume] = useState(1);
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
-  const audioRef = useRef(null);
+  
+  const playerRef = useRef(null);       // YouTube player instance
+  const progressTimer = useRef(null);
+  const repeatRef = useRef(repeat);     // Keep fresh ref for callbacks
+  const playNextRef = useRef(playNext);
+  const volumeRef = useRef(volume);
+  const isPlayingRef = useRef(isPlaying);
 
-  // When track changes, load + play it
+  // Keep refs in sync
+  useEffect(() => { repeatRef.current = repeat; }, [repeat]);
+  useEffect(() => { playNextRef.current = playNext; }, [playNext]);
+  useEffect(() => { volumeRef.current = volume; }, [volume]);
+  useEffect(() => { isPlayingRef.current = isPlaying; }, [isPlaying]);
+
+  // Start/stop progress polling
+  const startProgressPolling = useCallback(() => {
+    if (progressTimer.current) clearInterval(progressTimer.current);
+    progressTimer.current = setInterval(() => {
+      if (playerRef.current && typeof playerRef.current.getCurrentTime === 'function') {
+        try {
+          setProgress(playerRef.current.getCurrentTime());
+          const dur = playerRef.current.getDuration();
+          if (dur > 0) setDuration(dur);
+        } catch {}
+      }
+    }, 250);
+  }, []);
+
+  const stopProgressPolling = useCallback(() => {
+    if (progressTimer.current) {
+      clearInterval(progressTimer.current);
+      progressTimer.current = null;
+    }
+  }, []);
+
+  // Load YT API on mount
   useEffect(() => {
-    if (!currentTrack || !audioRef.current) return;
-    
-    audioRef.current.src = `/api/stream?id=${currentTrack.id}`;
-    audioRef.current.load();
-    audioRef.current.play().catch(e => {
-      console.error('Play error:', e);
-      if (e.name === 'AbortError') return;
-      setIsPlaying(false);
-    });
-    setIsPlaying(true);
-    setProgress(0);
+    loadYTApi();
+    return () => stopProgressPolling();
+  }, []);
+
+  // When track changes, load + play
+  useEffect(() => {
+    if (!currentTrack) return;
+
+    const play = async () => {
+      await loadYTApi();
+
+      if (playerRef.current && typeof playerRef.current.loadVideoById === 'function') {
+        // Player already exists, just load new video
+        playerRef.current.loadVideoById(currentTrack.id);
+      } else {
+        // Create player for the first time
+        // Destroy any stale player first
+        if (playerRef.current && typeof playerRef.current.destroy === 'function') {
+          try { playerRef.current.destroy(); } catch {}
+        }
+        playerRef.current = null;
+
+        playerRef.current = new window.YT.Player('yt-player-container', {
+          height: '1',
+          width: '1',
+          videoId: currentTrack.id,
+          playerVars: {
+            autoplay: 1,
+            controls: 0,
+            disablekb: 1,
+            fs: 0,
+            iv_load_policy: 3,
+            modestbranding: 1,
+            rel: 0,
+            playsinline: 1,
+          },
+          events: {
+            onReady: (event) => {
+              event.target.setVolume(volumeRef.current * 100);
+              event.target.playVideo();
+            },
+            onStateChange: (event) => {
+              const state = event.data;
+              if (state === window.YT.PlayerState.ENDED) {
+                stopProgressPolling();
+                if (repeatRef.current === 'one') {
+                  playerRef.current.seekTo(0);
+                  playerRef.current.playVideo();
+                } else {
+                  playNextRef.current();
+                }
+              } else if (state === window.YT.PlayerState.PLAYING) {
+                if (!isPlayingRef.current) setIsPlaying(true);
+                const dur = playerRef.current.getDuration();
+                if (dur > 0) setDuration(dur);
+                startProgressPolling();
+              } else if (state === window.YT.PlayerState.PAUSED) {
+                if (isPlayingRef.current) setIsPlaying(false);
+                stopProgressPolling();
+              }
+            },
+            onError: (event) => {
+              console.error('YT Player error code:', event.data);
+              setIsPlaying(false);
+              stopProgressPolling();
+            },
+          },
+        });
+      }
+
+      setIsPlaying(true);
+      setProgress(0);
+    };
+
+    play();
   }, [currentTrack?.id]);
 
-  // Sync play/pause state
+  // Sync play/pause with YT player
   useEffect(() => {
-    if (!audioRef.current) return;
-    if (isPlaying) {
-      audioRef.current.play().catch(() => {});
-    } else {
-      audioRef.current.pause();
-    }
+    if (!playerRef.current || typeof playerRef.current.getPlayerState !== 'function') return;
+    try {
+      const state = playerRef.current.getPlayerState();
+      if (isPlaying && state !== window.YT.PlayerState.PLAYING) {
+        playerRef.current.playVideo();
+      } else if (!isPlaying && state === window.YT.PlayerState.PLAYING) {
+        playerRef.current.pauseVideo();
+      }
+    } catch {}
   }, [isPlaying]);
 
   const togglePlay = () => {
@@ -57,28 +182,28 @@ export default function Player() {
     setIsPlaying(!isPlaying);
   };
 
-  const handleTimeUpdate = () => {
-    if (!audioRef.current) return;
-    setProgress(audioRef.current.currentTime);
-    setDuration(audioRef.current.duration || 0);
-  };
-
   const handleSeek = (e) => {
     const time = Number(e.target.value);
     setProgress(time);
-    if (audioRef.current) audioRef.current.currentTime = time;
+    if (playerRef.current && typeof playerRef.current.seekTo === 'function') {
+      playerRef.current.seekTo(time, true);
+    }
   };
 
   const handleVolumeChange = (e) => {
     const vol = Number(e.target.value);
     setVolume(vol);
-    if (audioRef.current) audioRef.current.volume = vol;
+    if (playerRef.current && typeof playerRef.current.setVolume === 'function') {
+      playerRef.current.setVolume(vol * 100);
+    }
   };
 
   const toggleVolume = () => {
     const newVol = volume > 0 ? 0 : 1;
     setVolume(newVol);
-    if (audioRef.current) audioRef.current.volume = newVol;
+    if (playerRef.current && typeof playerRef.current.setVolume === 'function') {
+      playerRef.current.setVolume(newVol * 100);
+    }
   };
 
   const cycleRepeat = () => {
@@ -198,24 +323,17 @@ export default function Player() {
           if (window.innerWidth <= 600) setIsExpanded(true);
         }}
       >
-        <audio
-          ref={audioRef}
-          loop={repeat === 'one'}
-          onTimeUpdate={handleTimeUpdate}
-          onEnded={() => {
-            if (audioRef.current && (audioRef.current.duration < 1 || Number.isNaN(audioRef.current.duration))) {
-              console.error("Audio ended too quickly, possibly stream error. Stopping playback.");
-              setIsPlaying(false);
-            } else {
-              playNext();
-            }
-          }}
-          onError={() => {
-            console.error("Audio playback error");
-            setIsPlaying(false);
-          }}
-          onLoadedMetadata={handleTimeUpdate}
-        />
+        {/* Hidden YouTube player - positioned off-screen */}
+        <div id="yt-player-container" style={{ 
+          position: 'fixed', 
+          top: '-100px', 
+          left: '-100px', 
+          width: '1px', 
+          height: '1px', 
+          overflow: 'hidden',
+          opacity: 0,
+          pointerEvents: 'none',
+        }} />
 
         {/* Track info */}
         <div className="player-track">
@@ -393,7 +511,9 @@ export default function Player() {
           progress={progress} 
           onSeek={(time) => {
             setProgress(time);
-            if (audioRef.current) audioRef.current.currentTime = time;
+            if (playerRef.current && typeof playerRef.current.seekTo === 'function') {
+              playerRef.current.seekTo(time, true);
+            }
           }} 
           onClose={() => setShowLyrics(false)} 
         />

@@ -27,7 +27,6 @@
 *.pem
 *-player-script.js
 ANDROID_APP/
-.github/
 
 # debug
 npm-debug.log*

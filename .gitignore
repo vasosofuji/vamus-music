@@ -21,6 +21,10 @@
 /build
 /dist
 /android
+/FLASK_ANDROID/
+/.github/
+/Dockerfile
+/docker-compose.yml
 
 # misc
 .DS_Store
